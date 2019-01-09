@@ -1,0 +1,10 @@
+/**
+ * Stylesheet _style.scss
+ */
+
+.menu-builder {
+    padding: 10px;
+    & > * {
+        // min-height: 60px;
+    }
+}

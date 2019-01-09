@@ -1,0 +1,26 @@
+/**
+ * Stylesheet _column.scss
+ */
+
+.column {
+    margin: 8px;
+    border: 1px solid lightgrey;
+    border-radius: 2px;
+    background-color: white;
+    transition: background-color .25s ease-in;
+    flex-basis: 33%;
+    min-height: 50vh;
+
+    &-title {
+        padding: 8px;
+    }
+
+    &-list {
+        padding: 8px;
+        height: 100%;
+    }
+
+    &.drag-over {
+        background-color: skyblue;
+    }
+}

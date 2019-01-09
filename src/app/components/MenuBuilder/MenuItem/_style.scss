@@ -1,0 +1,24 @@
+/**
+ * Stylesheet _style.scss
+ */
+
+.menu-item {
+    padding: 10px;
+    border: 1px solid lightgrey;
+    border-radius: 2px;
+    margin: 20px 0;
+    background-color: white;
+    display: block;
+    overflow: hidden;
+    position: relative;
+
+    &-content {
+        padding: 8px;
+        margin: 8px;
+        background-color: rgba(red, .1);
+    }
+
+    &-child {
+        margin-left: 8px;
+    }
+}
