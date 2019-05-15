@@ -25,7 +25,7 @@ export default class MenuItem extends Component {
         return (
             <Draggable draggableId={item.id} index={index}>
                 {({innerRef: draggableRef, draggableProps, dragHandleProps}, {isDragging, draggingOver}) => (
-                <Droppable droppableId={item.id} type="child" isCombineEnabled={true}>
+                <Droppable droppableId={item.id} type="child" isCombineEnabled={true} isDropDisabled={depth >= 2}>
                     {({ innerRef: droppableRef, droppableProps, placeholder }, { isDraggingOver, draggingOverWith }) => (
                     <div
                         className={cn('menu-item', {'menu-item-child': depth})}
