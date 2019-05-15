@@ -38,6 +38,10 @@ const defaultConfig = {
             '.core/**/*.less',
             '.core/**/*.scss',
             '.core/**/*.sass',
+            '!{src/**/assets/style/*.less}',
+            '!{src/**/assets/style/*.scss}',
+            '!{src/**/assets/style/*.sass}',
+            '!{.core/components/Toolkit/style.scss}',
         ],
         assets: [
             'src/**/assets/**/*',
@@ -63,6 +67,7 @@ const defaultConfig = {
             '!{.core/**/_*.scss}',
         ],
         assets: [
+            '.core/assets/**/*',
             'src/**/assets/**/*',
             'src/assets/**/*',
             '!{src/**/*/assets/style,src/**/*/assets/style/**}',
@@ -70,9 +75,11 @@ const defaultConfig = {
             '!{src/assets/style,src/assets/style/**}',
             '!{src/assets/js,src/assets/js/**}',
         ],
+        compress: ['public/assets/**/*', '!public/assets/js/**'],
         includes: ['./node_modules'],
         appdir: path.resolve(__dirname, 'src/app'),
         rootdir: path.resolve(__dirname),
+        manifest: path.normalize(`${rootPath}/src/manifest.js`),
     },
     dest: {
         dist: 'public',
@@ -81,8 +88,10 @@ const defaultConfig = {
         style: 'public/assets/style',
         assets: 'public/assets',
         static: 'dist',
+        library: 'lib',
         build: 'build/src',
         colors: 'src/assets/style/_scss/_colors.scss',
+        startPath: '/',
     },
 };
 

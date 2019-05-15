@@ -15,32 +15,57 @@ const isMain = str => {
     return exp.test(str);
 };
 
-const styles = (req, res) => {
+const styles = (req, res, includeSheets = [], excludeSheets = []) => {
     let sarr = [];
+    const theme = op.get(
+        req,
+        'query.theme',
+        process.env.DEFAULT_THEME || 'style',
+    );
+    const defaultStylesheet = `${theme}.css`;
+
+    let styles = [];
+    let publicDir =
+        process.env.PUBLIC_DIRECTORY || path.resolve(process.cwd(), 'public');
+    let styleDir = path.normalize(path.join(publicDir, '/assets/style'));
+    let includes = [defaultStylesheet].concat(includeSheets);
+    let excludes = ['core.css', 'toolkit.css'].concat(excludeSheets);
 
     if (isToolkit(req.path)) {
-        sarr.push('/assets/style/core.css');
+        const p = path.normalize(path.join(styleDir, 'core.css'));
+        styles.push(
+            `<link rel="stylesheet" href="${p.split(publicDir).join('')}">`,
+        );
     } else {
-        let publicDir =
-            process.env.PUBLIC_DIRECTORY ||
-            path.resolve(process.cwd(), 'public');
-        let styleDir = path.normalize(path.join(publicDir, '/assets/style'));
-        let exclude = ['core.css', 'toolkit.css'];
+        styles = styles.concat(
+            fs
+                .readdirSync(styleDir)
+                .map(item => {
+                    const p = path.normalize(path.join(styleDir, item));
+                    if (fs.statSync(p).isFile()) {
+                        return `<link rel="stylesheet" href="${p
+                            .split(publicDir)
+                            .join('')}">`;
+                    }
+                    return false;
+                })
+                .filter(item => {
+                    if (
+                        item &&
+                        includes.find(search => item.indexOf(search) >= 0)
+                    ) {
+                        return true;
+                    }
 
-        fs.readdirSync(styleDir).forEach(item => {
-            if (exclude.indexOf(item) >= 0) {
-                return;
-            }
-            let p = path.normalize(path.join(styleDir, item));
-            if (fs.statSync(p).isFile()) {
-                sarr.push(p.split(publicDir).join(''));
-            }
-        });
+                    if (
+                        !item ||
+                        excludes.find(search => item.indexOf(search) >= 0)
+                    ) {
+                        return false;
+                    }
+                }),
+        );
     }
-
-    let styles = sarr.map(item => {
-        return `<link rel="stylesheet" href="${item}">`;
-    });
 
     return styles.join('\n\t');
 };
@@ -56,10 +81,8 @@ const scripts = (req, res) => {
         process.env.PUBLIC_DIRECTORY || `${process.cwd()}/public`;
 
     let scriptTags = globby
-        .sync(path.resolve(scriptPathBase, 'assets', 'js', '*.js'))
+        .sync(path.resolve(scriptPathBase, 'assets', 'js', '*main.js'))
         .map(script => path.parse(script).base)
-        .sort(prioritize('vendors.js'))
-        .sort(prioritize('polyfill.js'))
         .map(script => `<script src="/assets/js/${script}"></script>`)
         .join('\n');
 
@@ -68,12 +91,13 @@ const scripts = (req, res) => {
             .assetsByChunkName;
 
         scriptTags = Object.values(assetsByChunkName)
-            .map(chunk =>
-                normalizeAssets(chunk).filter(path => path.endsWith('.js'))
-            )
+            .map(chunk => {
+                return normalizeAssets(chunk).filter(path =>
+                    path.endsWith('.js'),
+                );
+            })
             .reduce((files, chunk) => files.concat(chunk), [])
-            .sort(prioritize('vendors.js'))
-            .sort(prioritize('polyfill.js'))
+            .filter(file => /main.js$/.test(file))
             .map(path => `<script src="/${path}"></script>`)
             .join('\n');
     }
@@ -99,6 +123,7 @@ export default (req, res, context) => {
     const coreTemplate = require(`../template/${renderMode}`);
 
     template = coreTemplate.template;
+
     if (fs.existsSync(`${rootPath}/src/app/server/template/${renderMode}.js`)) {
         let localTemplate = require(`${rootPath}/src/app/server/template/${renderMode}`);
         let templateVersion = sanitizeTemplateVersion(localTemplate.version);
@@ -107,11 +132,19 @@ export default (req, res, context) => {
         if (semver.satisfies(templateVersion, coreSemver)) {
             template = localTemplate.template;
 
+            const { includeSheets, excludeSheets } = localTemplate;
+
+            req.styles = styles(req, res, includeSheets, excludeSheets);
+
             // Accept local styles
             req.styles =
                 op.has(localTemplate, 'styles') && !isToolkit(req.path)
                     ? localTemplate.styles(req)
                     : req.styles;
+        } else {
+            console.warn(
+                `${rootPath}/src/app/server/template/${renderMode}.js is out of date, and will not be used. Use 'arcli server template' command to update.`,
+            );
         }
     }
 

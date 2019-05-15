@@ -10,10 +10,11 @@ import Sidebar from './Sidebar';
 import Content from './Content';
 import Settings from './Settings';
 import Notify from './Notify';
+import Loading from './Loading';
 import { Helmet } from 'react-helmet';
-import ToolbarIcons from './Toolbar/ToolbarIcons';
 import React, { Component, Fragment } from 'react';
 import { Plugins } from 'reactium-core/components/Plugable';
+import config from 'appdir/toolkit';
 
 /**
  * -----------------------------------------------------------------------------
@@ -22,50 +23,76 @@ import { Plugins } from 'reactium-core/components/Plugable';
  */
 
 export default class Toolkit extends Component {
+    static defaultProps = {
+        update: Date.now(),
+        prefs: {},
+        filters: [],
+        style: null,
+        showSettings: false,
+    };
+
     constructor(props) {
         super(props);
 
-        this.state = { ...this.props };
+        this.state = {};
         this.content = null;
         this.sidebar = null;
         this.settings = null;
         this.notify = null;
+        this.onResize = this.onResize.bind(this);
+        this.onKeyPress = this.onKeyPress.bind(this);
         this.togglePref = this.togglePref.bind(this);
         this.toggleSettings = this.toggleSettings.bind(this);
-        this.onResize = this.onResize.bind(this);
     }
 
     componentDidMount() {
         window.addEventListener('resize', this.onResize);
+        window.addEventListener('keydown', this.onKeyPress);
     }
 
-    componentWillReceiveProps(nextProps) {
-        this.setState(prevState => {
-            let newState = Object.assign({}, this.state, nextProps);
-            return newState;
-        });
+    componentWillUnmount() {
+        window.removeEventListener('resize', this.onResize);
+        window.removeEventListener('keydown', this.onKeyPress);
     }
 
-    onCopyClick() {
-        let autohide = 3000;
-        let dismissable = true;
-        let elm = this.notify;
-        let message = 'Code copied!';
+    onKeyPress(e) {
+        const { altKey, shiftKey, code } = e;
+        const codes = ['bracketleft'];
 
-        this.state.notice.show({ message, autohide, dismissable, elm });
+        if (codes.includes(String(code).toLowerCase()) && altKey && !shiftKey) {
+            e.preventDefault();
+            this.props.menuToggle();
+        }
+
+        if (codes.includes(String(code).toLowerCase()) && altKey && shiftKey) {
+            e.preventDefault();
+            this.toggleSettings({ type: 'toolbar-toggle-settings' });
+        }
+    }
+
+    onCopyClick(type) {
+        if (type !== 'copy') {
+            return;
+        }
+        const autohide = 3000;
+        const dismissable = true;
+        const elm = this.notify;
+        const message = 'Code copied!';
+
+        this.props.notice.show({ message, autohide, dismissable, elm });
     }
 
     onNoticeDismiss() {
-        let elm = this.notify;
+        const elm = this.notify;
 
-        this.state.notice.hide({ elm });
+        this.props.notice.hide({ elm });
     }
 
     onResize() {
         let w = window.innerWidth;
         if (w < 768) {
-            let { prefs } = this.state;
-            let expanded = op.get(prefs, 'sidebar.expanded', true);
+            const { prefs } = this.props;
+            const expanded = op.get(prefs, 'sidebar.expanded', true);
 
             if (expanded === true) {
                 this.toggleMenu();
@@ -74,36 +101,36 @@ export default class Toolkit extends Component {
     }
 
     onMenuItemClick(e) {
-        let url = e.target.getAttribute('href');
-        this.state.menuItemClick(url);
+        const url = e.target.getAttribute('href');
+        this.props.menuItemClick(url);
     }
 
     onMenuItemToggle(e) {
-        let { prefs } = this.state;
-        let target = e.currentTarget.dataset.target;
+        const { prefs } = this.props;
+        const target = e.currentTarget.dataset.target;
 
-        let collapseAll = op.get(prefs, 'menu.all', false);
-        let value = !op.get(prefs, `menu.${target}`, collapseAll);
+        const collapseAll = op.get(prefs, 'menu.all', false);
+        const value = !op.get(prefs, `menu.${target}`, collapseAll);
 
-        let data = {
+        const data = {
             state: {
                 id: target,
                 value,
             },
         };
 
-        let type = 'toggle-menu';
+        const type = 'toggle-menu';
 
         this.togglePref({ type, data });
     }
 
     onButtonClick(e, data) {
-        let { type } = e;
-
+        const { type } = e;
         this.togglePref({ type, data });
         this.toggleFilter({ type, data });
         this.toggleFullscreen({ type, data, e });
         this.toggleSettings({ type });
+        this.onCopyClick(type);
     }
 
     onFilterClick(e, filter) {
@@ -120,33 +147,33 @@ export default class Toolkit extends Component {
     }
 
     onSettingsOpen() {
-        this.state.toggleSettings();
+        this.props.toggleSettings();
     }
 
     onSettingsClose() {
-        this.state.toggleSettings();
+        this.props.toggleSettings();
     }
 
     onSettingSwitchClick({ pref, value }) {
-        let { set } = this.state;
-        let key = `prefs.${pref}`;
+        const key = `prefs.${pref}`;
 
-        set({ key, value });
+        this.props.set({ key, value });
 
         this.setState({ update: Date.now() });
     }
 
     onThemeChange(e) {
-        this.state.setTheme(e.target.value);
+        this.props.setTheme(e.target.value);
     }
 
     toggleFilter({ type, data }) {
-        let isFilter = new RegExp('^toolbar-filter').test(type);
+        const isFilter = new RegExp('^toolbar-filter').test(type);
         if (isFilter !== true) {
             return;
         }
 
-        let { filters = [], manifest = {} } = this.state;
+        const { manifest } = this.props;
+        const { filters = [] } = this.state;
 
         let filter = type.split('toolbar-filter-').join('');
 
@@ -180,12 +207,12 @@ export default class Toolkit extends Component {
     }
 
     toggleMenu() {
-        this.state.menuToggle(this.sidebar.container);
+        this.props.menuToggle();
         this.setState({ update: Date.now() });
     }
 
     togglePref({ type, data }) {
-        let toggles = [
+        const toggles = [
             'toggle-code',
             'toggle-codeColor',
             'toggle-docs',
@@ -197,7 +224,7 @@ export default class Toolkit extends Component {
             return;
         }
 
-        let { set } = this.state;
+        let { set } = this.props;
 
         let value;
         let key = type.split('toggle-').join('');
@@ -205,7 +232,6 @@ export default class Toolkit extends Component {
 
         switch (type) {
             case 'toggle-link':
-            case 'toggle-docs':
             case 'toggle-code': {
                 let k = type === 'toggle-code' ? 'codes' : 'docs';
                 k = type === 'toggle-link' ? 'link' : k;
@@ -233,11 +259,11 @@ export default class Toolkit extends Component {
         this.setState({ update: Date.now() });
     }
 
-    toggleSettings({ type, data }) {
+    toggleSettings({ type }) {
         if (type !== 'toolbar-toggle-settings') {
             return;
         }
-        this.settings.open();
+        this.settings.toggle();
     }
 
     getElements({ menu, group, element }) {
@@ -265,7 +291,7 @@ export default class Toolkit extends Component {
                 return;
             }
 
-            let elements = op.get(menu, `${k}.elements`, {});
+            const elements = op.get(menu, `${k}.elements`, {});
 
             Object.keys(elements).forEach(e => {
                 if (op.get(elements, `${e}.hidden`, false) === true) {
@@ -280,9 +306,9 @@ export default class Toolkit extends Component {
     }
 
     render() {
+        const { filters = [] } = this.state;
         let {
             update = Date.now(),
-            filters = [],
             manifest = {},
             prefs = {},
             group,
@@ -291,7 +317,8 @@ export default class Toolkit extends Component {
             showMenu,
             style,
             notify,
-        } = this.state;
+            loading,
+        } = this.props;
 
         let {
             themes = [],
@@ -305,7 +332,9 @@ export default class Toolkit extends Component {
         menu = this.filterMenu(menu);
 
         let elements = this.getElements({ menu, group, element });
-        let groupName = group ? menu[group]['label'] : 'Reactium';
+        let groupName = group
+            ? menu[group]['label']
+            : op.get(config, 'header.name', 'Reactium');
         let theme = _.findWhere(themes, { selected: true });
 
         if (!style) {
@@ -321,18 +350,23 @@ export default class Toolkit extends Component {
 
         return (
             <Fragment>
-                <Helmet titleTemplate='%s | Style Guide'>
+                <Helmet
+                    titleTemplate={`%s | ${op.get(
+                        config,
+                        'header.title',
+                        'Style Guide',
+                    )}`}>
                     <title>{groupName}</title>
                     <html lang='en' />
                     <body className='re-toolkit' />
                 </Helmet>
                 <Plugins zone='toolkit-head' />
 
-                <ToolbarIcons />
-
                 <Header
                     {...header}
+                    update={update}
                     themes={themes}
+                    style={style}
                     onThemeChange={this.onThemeChange.bind(this)}
                 />
 
@@ -345,33 +379,33 @@ export default class Toolkit extends Component {
                         toolbar={toolbar}
                         filters={filters}
                         group={group}
-                        ref={elm => {
-                            this.sidebar = elm;
-                        }}
                         onFilterClick={this.onFilterClick.bind(this)}
                         onMenuItemClick={this.onMenuItemClick.bind(this)}
                         onMenuItemToggle={this.onMenuItemToggle.bind(this)}
                         onToolbarItemClick={this.onButtonClick.bind(this)}
                     />
 
-                    <Content
-                        group={group}
-                        prefs={prefs}
-                        menu={menu}
-                        style={style}
-                        data={elements}
-                        update={update}
-                        title={groupName}
-                        element={element}
-                        defaultComponent={overview}
-                        ref={elm => {
-                            this.content = elm;
-                        }}
-                        onMenuToggleClick={this.toggleMenu.bind(this)}
-                        onButtonClick={this.onButtonClick.bind(this)}
-                        onCrumbClick={this.onMenuItemClick.bind(this)}
-                        onCopyClick={this.onCopyClick.bind(this)}
-                    />
+                    {!loading && (
+                        <Content
+                            group={group}
+                            prefs={prefs}
+                            menu={menu}
+                            style={style}
+                            data={elements}
+                            update={update}
+                            title={groupName}
+                            element={element}
+                            defaultComponent={overview}
+                            ref={elm => {
+                                this.content = elm;
+                            }}
+                            onMenuToggleClick={this.toggleMenu.bind(this)}
+                            onButtonClick={this.onButtonClick.bind(this)}
+                            onCrumbClick={this.onMenuItemClick.bind(this)}
+                            onCopyClick={this.onCopyClick.bind(this)}
+                        />
+                    )}
+                    {loading && <Loading onComplete={this.props.loaded} />}
                 </main>
 
                 <Settings
@@ -398,11 +432,3 @@ export default class Toolkit extends Component {
         );
     }
 }
-
-Toolkit.defaultProps = {
-    update: Date.now(),
-    prefs: {},
-    filters: [],
-    style: null,
-    showSettings: false,
-};

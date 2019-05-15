@@ -1,5 +1,7 @@
-import deps from 'dependencies';
+import _ from 'underscore';
 import op from 'object-path';
+import deps from 'dependencies';
+import { themes } from 'appdir/toolkit';
 import { TweenMax, Power2 } from 'gsap/umd/TweenMax';
 
 const isToolkit = path => {
@@ -8,49 +10,64 @@ const isToolkit = path => {
 };
 
 export default {
-    mount: data => dispatch => {
-        return dispatch({
-            type: deps.actionTypes.TOOLKIT_MOUNT,
+    load: data => dispatch =>
+        dispatch({
+            type: deps().actionTypes.TOOLKIT_LOAD,
             data,
-        });
-    },
+        }),
+
+    loaded: () => dispatch =>
+        dispatch({ type: deps().actionTypes.TOOLKIT_LOADED }),
+
+    mount: data => dispatch =>
+        dispatch({
+            type: deps().actionTypes.TOOLKIT_MOUNT,
+            data,
+        }),
+
+    unmount: data => dispatch =>
+        dispatch({
+            type: deps().actionTypes.TOOLKIT_UNMOUNT,
+        }),
 
     menuItemClick: url => dispatch => {
         if (isToolkit(url)) {
-            let uarr = url.split('/toolkit')[1].split('/');
+            const uarr = url.split('/toolkit')[1].split('/');
             uarr.shift();
 
-            let group = uarr[0];
-            let element = uarr[1];
-            let params = { group, element };
+            const group = uarr[0];
+            const element = uarr[1];
+            const params = { group, element };
 
             return dispatch({
-                type: deps.actionTypes.TOOLKIT_NAV,
+                type: deps().actionTypes.TOOLKIT_NAV,
                 params,
             });
         }
     },
 
-    menuToggle: elm => (dispatch, getState) => {
-        let state = getState()['Toolkit'];
+    menuToggle: () => (dispatch, getState) => {
+        const elm = document.getElementById('reactium-sidebar');
+        if (!elm) {
+            return;
+        }
 
-        let { animating = false } = state;
+        const state = getState()['Toolkit'];
+        const { animating = false } = state;
 
         if (animating === true) {
             return;
         }
 
         // Let the app know you're animating
-        dispatch({ type: deps.actionTypes.TOOLKIT_MENU_TOGGLE });
+        dispatch({ type: deps().actionTypes.TOOLKIT_MENU_TOGGLE });
 
         // Unset display: none
         TweenMax.set(elm, { display: 'flex' });
 
         let expanded = op.get(state, 'prefs.sidebar.expanded', false);
-
-        let w = expanded === true ? 0 : 320;
-
-        let anime = {
+        const w = expanded === true ? 0 : 320;
+        const anime = {
             ease: Power2.easeInOut,
             width: `${w}px`,
             onComplete: () => {
@@ -60,22 +77,22 @@ export default {
 
                 TweenMax.set(elm, { display });
 
-                dispatch({ type: deps.actionTypes.TOOLKIT_MENU_TOGGLE });
+                dispatch({ type: deps().actionTypes.TOOLKIT_MENU_TOGGLE });
                 dispatch({
-                    type: deps.actionTypes.TOOLKIT_PREF,
+                    type: deps().actionTypes.TOOLKIT_PREF,
                     value: expanded,
                     key: 'prefs.sidebar.expanded',
                 });
             },
         };
 
-        TweenMax.to(elm, 0.125, anime);
+        TweenMax.to(elm, 0.25, anime);
     },
 
     notice: {
         hide: params => (dispatch, getState) => {
-            let state = getState()['Toolkit'];
-            let { animating = false } = op.get(state, 'notify', {});
+            const state = getState()['Toolkit'];
+            const { animating = false } = op.get(state, 'notify', {});
             let { elm } = params;
 
             elm = elm.cont;
@@ -85,18 +102,18 @@ export default {
             }
 
             dispatch({
-                type: deps.actionTypes.TOOLKIT_NOTICE_UPDATE,
+                type: deps().actionTypes.TOOLKIT_NOTICE_UPDATE,
                 params: { ...state.notify, animating: true },
             });
 
-            let h = -(elm.offsetHeight + 20);
+            const h = -(elm.offsetHeight + 20);
 
             TweenMax.to(elm, 0.25, {
                 top: `${h}px`,
                 ease: Power2.easeInOut,
                 onComplete: () => {
                     dispatch({
-                        type: deps.actionTypes.TOOLKIT_NOTICE_TOGGLE,
+                        type: deps().actionTypes.TOOLKIT_NOTICE_TOGGLE,
                         visible: false,
                     });
 
@@ -106,8 +123,8 @@ export default {
         },
 
         show: params => (dispatch, getState) => {
-            let state = getState()['Toolkit'];
-            let { animating = false } = op.get(state, 'notify', {});
+            const state = getState()['Toolkit'];
+            const { animating = false } = op.get(state, 'notify', {});
             let { autohide, dismissable, elm, message } = params;
 
             elm = elm.cont;
@@ -121,7 +138,7 @@ export default {
             params['animating'] = true;
 
             dispatch({
-                type: deps.actionTypes.TOOLKIT_NOTICE_UPDATE,
+                type: deps().actionTypes.TOOLKIT_NOTICE_UPDATE,
                 params,
             });
 
@@ -130,7 +147,7 @@ export default {
                 ease: Power2.easeInOut,
                 onComplete: () => {
                     dispatch({
-                        type: deps.actionTypes.TOOLKIT_NOTICE_TOGGLE,
+                        type: deps().actionTypes.TOOLKIT_NOTICE_TOGGLE,
                         visible: true,
                     });
                 },
@@ -138,22 +155,23 @@ export default {
         },
     },
 
-    set: ({ key, value }) => dispatch => {
-        return dispatch({
-            type: deps.actionTypes.TOOLKIT_PREF,
+    set: ({ key, value }) => dispatch =>
+        dispatch({
+            type: deps().actionTypes.TOOLKIT_PREF,
             value,
             key,
-        });
-    },
+        }),
 
     setTheme: theme => dispatch => {
+        theme =
+            op.get(_.findWhere(themes, { css: theme }), 'css') ||
+            '/assets/style/style.css';
         return dispatch({
-            type: deps.actionTypes.TOOLKIT_THEME,
+            type: deps().actionTypes.TOOLKIT_THEME,
             theme,
         });
     },
 
-    toggleSettings: () => dispatch => {
-        dispatch({ type: deps.actionTypes.TOOLKIT_SETTINGS_TOGGLE });
-    },
+    toggleSettings: () => dispatch =>
+        dispatch({ type: deps().actionTypes.TOOLKIT_SETTINGS_TOGGLE }),
 };

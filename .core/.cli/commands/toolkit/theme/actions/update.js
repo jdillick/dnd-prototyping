@@ -3,6 +3,7 @@ const path = require('path');
 const chalk = require('chalk');
 const fs = require('fs-extra');
 const op = require('object-path');
+const homedir = require('os').homedir();
 const prettier = require('prettier').format;
 
 module.exports = spinner => {
@@ -12,9 +13,8 @@ module.exports = spinner => {
         }
     };
 
-    const backupPath = cwd => {
-        return path.normalize(`${cwd}/.BACKUP/toolkit`);
-    };
+    const backupPath = cwd =>
+        path.join(homedir, '.arcli', cwd, '.BACKUP', 'toolkit');
 
     return {
         backup: ({ action, params, props }) => {
@@ -86,14 +86,16 @@ module.exports = spinner => {
             manifest.themes = themes;
 
             let content = String(
-                prettier(JSON.stringify(manifest), { parser: 'json-stringify' })
+                prettier(JSON.stringify(manifest), {
+                    parser: 'json-stringify',
+                }),
             )
                 .replace(/\"require(.*?)\.default\"/gim, 'require$1.default')
                 .replace(/\\"/g, '"')
                 .replace(/\\'/g, "'");
 
             content = prettier(`module.exports = ${content};`, {
-                parser: 'babylon',
+                parser: 'babel',
                 printWidth: 240,
                 singleQuote: true,
                 tabWidth: 4,

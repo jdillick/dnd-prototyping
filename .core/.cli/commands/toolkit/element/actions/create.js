@@ -4,6 +4,7 @@ const chalk = require('chalk');
 const fs = require('fs-extra');
 const op = require('object-path');
 const zip = require('folder-zipper');
+const homedir = require('os').homedir();
 const prettier = require('prettier').format;
 const handlebars = require('handlebars').compile;
 
@@ -14,9 +15,8 @@ module.exports = spinner => {
         }
     };
 
-    const backupPath = cwd => {
-        return path.normalize(`${cwd}/.BACKUP/toolkit`);
-    };
+    const backupPath = cwd =>
+        path.join(homedir, '.arcli', cwd, '.BACKUP', 'toolkit');
 
     const generate = ({ action, params, props, templateFile, fileName }) => {
         const { cwd } = props;
@@ -32,7 +32,7 @@ module.exports = spinner => {
 
         // Template content
         const template = path.normalize(
-            `${__dirname}/template/${templateFile}.hbs`
+            `${__dirname}/template/${templateFile}.hbs`,
         );
         const content = handlebars(fs.readFileSync(template, 'utf-8'))(params);
 
@@ -56,7 +56,7 @@ module.exports = spinner => {
 
             const backupDir = backupPath(cwd);
             const backupZip = path.normalize(
-                `${backupDir}/${now}.${group}.${name}.zip`
+                `${backupDir}/${now}.${group}.${name}.zip`,
             );
 
             // Create the backup directory
@@ -122,7 +122,7 @@ module.exports = spinner => {
                 const elements = {};
 
                 let keys = Object.keys(
-                    op.get(manifest, `menu.${group}.elements`, {})
+                    op.get(manifest, `menu.${group}.elements`, {}),
                 ).filter(key => {
                     return key !== ID;
                 });
@@ -132,7 +132,7 @@ module.exports = spinner => {
                     elements[key] = op.get(
                         manifest,
                         `menu.${group}.elements.${key}`,
-                        {}
+                        {},
                     );
                 });
 
@@ -142,14 +142,16 @@ module.exports = spinner => {
             op.set(manifest, `menu.${group}.elements.${ID}`, element);
 
             let content = String(
-                prettier(JSON.stringify(manifest), { parser: 'json-stringify' })
+                prettier(JSON.stringify(manifest), {
+                    parser: 'json-stringify',
+                }),
             )
                 .replace(/\"require(.*?)\.default\"/gim, 'require$1.default')
                 .replace(/\\"/g, '"')
                 .replace(/\\'/g, "'");
 
             content = prettier(`module.exports = ${content};`, {
-                parser: 'babylon',
+                parser: 'babel',
                 printWidth: 240,
                 singleQuote: true,
                 tabWidth: 4,

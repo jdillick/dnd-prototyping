@@ -6,6 +6,7 @@
 import React, { Component, Fragment } from 'react';
 import op from 'object-path';
 import { TweenMax, Power2 } from 'gsap/umd/TweenMax';
+import Icon from 'reactium-core/components/Toolkit/Icon';
 
 /**
  * -----------------------------------------------------------------------------
@@ -14,26 +15,31 @@ import { TweenMax, Power2 } from 'gsap/umd/TweenMax';
  */
 
 export default class Notify extends Component {
+    static defaultProps = {
+        autohide: false,
+        dismissable: true,
+        message: null,
+        onCloseClick: null,
+        prefs: {},
+        visible: false,
+    };
+
     constructor(props) {
         super(props);
-        this.state = {
-            ...this.props
-        };
-
-        this.autoClose = this.autoClose.bind(this);
+        this.state = {};
         this.cont = null;
         this.timer = null;
+        this.autoClose = this.autoClose.bind(this);
     }
 
-    componentWillReceiveProps(nextProps) {
-        this.setState(prevState => ({
-            ...prevState,
-            ...nextProps
-        }));
+    componentWillUnmount() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+        }
     }
 
     autoClose() {
-        let { onCloseClick } = this.state;
+        const { onCloseClick } = this.props;
 
         clearTimeout(this.timer);
         this.timer = null;
@@ -44,14 +50,14 @@ export default class Notify extends Component {
     }
 
     render() {
-        let {
+        const {
             autohide,
             dismissable,
             message,
             onCloseClick,
             prefs,
-            visible
-        } = this.state;
+            visible,
+        } = this.props;
 
         let pos = op.get(prefs, 'sidebar.position', 'left');
         pos = pos === 'left' ? 'right' : 'left';
@@ -62,39 +68,26 @@ export default class Notify extends Component {
                 this.timer = null;
             }
 
-            let time = typeof autohide === 'number' ? autohide : 5000;
+            const time = typeof autohide === 'number' ? autohide : 5000;
             this.timer = setTimeout(this.autoClose, time);
         }
 
-        visible = visible === true ? 'visible' : '';
-
         return (
             <aside
-                className={`re-notice ${pos} ${visible}`}
+                className={`re-notice ${pos} ${visible ? 'visible' : ''}`}
                 ref={elm => {
                     this.cont = elm;
                 }}>
                 <div>{message}</div>
-                {dismissable === true ? (
+                {dismissable === true && (
                     <button
-                        type={`button`}
-                        className={`re-notice-close`}
+                        type='button'
+                        className='re-notice-close'
                         onClick={onCloseClick}>
-                        <svg>
-                            <use xlinkHref={'#re-icon-close'} />
-                        </svg>
+                        <Icon.Close />
                     </button>
-                ) : null}
+                )}
             </aside>
         );
     }
 }
-
-Notify.defaultProps = {
-    autohide: false,
-    dismissable: true,
-    message: null,
-    onCloseClick: null,
-    prefs: {},
-    visible: false
-};

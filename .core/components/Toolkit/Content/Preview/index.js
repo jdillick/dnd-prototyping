@@ -3,59 +3,102 @@
  * Imports
  * -----------------------------------------------------------------------------
  */
-import React, { Component, Fragment } from 'react';
-import { Provider } from 'react-redux';
 import { getDisplayName } from 'reactium-core/components/Toolkit/_lib/tools';
 import Frame, { FrameContextConsumer } from 'react-frame-component';
+import React, { Component, Fragment } from 'react';
+import { themes } from 'appdir/toolkit';
+import { Provider } from 'react-redux';
 import PropTypes from 'prop-types';
+import op from 'object-path';
+import _ from 'underscore';
 
 /**
  * -----------------------------------------------------------------------------
  * React Component: Preview
  * -----------------------------------------------------------------------------
  */
+const Empty = props => {
+    return () => null;
+};
+
 export default class Preview extends Component {
+    static defaultProps = {
+        visible: true,
+        component: null,
+        group: null,
+        id: null,
+        style: '/assets/style/style.css',
+        toolkit: '/assets/style/toolkit.css',
+    };
+
+    static contextTypes = {
+        store: PropTypes.object,
+    };
+
     constructor(props) {
         super(props);
 
+        this.h = null;
+        this.iframe = React.createRef();
         this.resize = this.resize.bind(this);
-        this.registerIframe = this.registerIframe.bind(this);
-        this.state = {
-            ...this.props,
-        };
+        this.state = { visible: this.props.visible };
     }
 
-    componentWillReceiveProps(nextProps) {
-        this.setState(prevState => ({
-            ...prevState,
-            ...nextProps,
-        }));
+    componentDidMount() {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        window.addEventListener('resize', this.resize);
+    }
 
-        const { style } = nextProps;
-        if (this.iframe && style !== this.state.style) {
-            const stylesheet = this.iframe.contentWindow.document.head.querySelector(
-                'link[rel=stylesheet]'
+    componentWillUnMount() {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        window.removeEventListener('resize', this.resize);
+    }
+
+    componentDidUpdate(prevProps) {
+        const { style: prevStyle, update: lastUpdate } = prevProps;
+        const { style: currStyle, update } = this.props;
+
+        if (this.iframe.current && prevStyle !== currStyle) {
+            const stylesheet = this.iframe.current.node.contentWindow.document.head.querySelector(
+                'link[rel=stylesheet]',
             );
-            stylesheet.setAttribute('href', style);
+            stylesheet.setAttribute('href', currStyle);
+        }
+
+        if (update !== lastUpdate) {
+            this.resize();
         }
     }
 
     resize() {
-        let { visible } = this.state;
-        if (!this.iframe || visible === false) {
+        const { visible } = this.state;
+
+        if (!this.iframe.current || visible === false) {
             return;
         }
 
         try {
-            let h = this.iframe.contentWindow.document.body.scrollHeight;
-            h = h < 1 ? 100 : h;
+            const iframe = this.iframe.current.node;
 
-            this.iframe.style.height = `${h}px`;
+            if (['h', '%'].includes(String(iframe.style.height).substr(-1))) {
+                return;
+            }
+
+            const h = Math.max(
+                iframe.contentWindow.document.body.scrollHeight,
+                100,
+            );
+
+            if (this.h !== h) {
+                this.h = h;
+                iframe.style.height = `${h}px`;
+            }
         } catch (err) {}
-    }
-
-    registerIframe(elm) {
-        this.iframe = elm && elm.node;
     }
 
     renderCmp({ style, toolkit }) {
@@ -64,6 +107,9 @@ export default class Preview extends Component {
             browserSync = document.getElementById('__bs_script__');
             browserSync = browserSync ? browserSync.outerHTML : '';
         }
+
+        const theme = _.findWhere(themes, { css: style }) || themes[0];
+        style = op.get(theme, 'css');
 
         return `
             <!DOCTYPE html>
@@ -82,22 +128,11 @@ export default class Preview extends Component {
     }
 
     render() {
-        let {
-            component: Component,
-            group,
-            id,
-            visible,
-            style,
-            path,
-            dna,
-        } = this.state;
+        const { group, id, visible, style, path, dna } = this.props;
 
-        if (!Component || !group || !id) {
-            return null;
-        }
-
-        let display = visible ? 'block' : 'none';
-        let markup = this.renderCmp(this.state);
+        const display = visible ? 'block' : 'none';
+        const markup = this.renderCmp(this.props);
+        let Component = this.props.component || Empty(this.props);
 
         return (
             <Frame
@@ -106,24 +141,15 @@ export default class Preview extends Component {
                 onLoad={this.resize}
                 frameBorder={0}
                 scrolling={'no'}
-                ref={this.registerIframe}
+                ref={this.iframe}
                 initialContent={markup}
                 mountTarget='#router'>
-                <Component />
+                <FrameContextConsumer>
+                    {({ window: iWindow, document: iDocument }) => (
+                        <Component iWindow={iWindow} iDocument={iDocument} />
+                    )}
+                </FrameContextConsumer>
             </Frame>
         );
     }
 }
-
-Preview.defaultProps = {
-    visible: true,
-    component: null,
-    group: null,
-    id: null,
-    style: '/assets/style/style.css',
-    toolkit: '/assets/style/toolkit.css',
-};
-
-Preview.contextTypes = {
-    store: PropTypes.object,
-};

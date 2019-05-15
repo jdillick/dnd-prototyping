@@ -1,4 +1,3 @@
-
 import deps from 'dependencies';
 
 export default (state = {}, action) => {
@@ -7,7 +6,7 @@ export default (state = {}, action) => {
 
     switch (action.type) {
 
-        case deps.actionTypes.{{ID}}_MOUNT:
+        case deps().actionTypes.{{name}}.LOAD:
             newState = { ...state, ...action.data };
             return newState;
 

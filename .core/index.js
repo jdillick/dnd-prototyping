@@ -8,12 +8,13 @@ import bodyParser from 'body-parser';
 import router from './server/router';
 import cookieParser from 'cookie-parser';
 import cookieSession from 'cookie-session';
-import proxy from 'express-http-proxy';
+import proxy from 'http-proxy-middleware';
 import morgan from 'morgan';
 import apiConfig from 'appdir/api/config';
 import path from 'path';
 import fs from 'fs';
 import op from 'object-path';
+import staticGzip from 'express-static-gzip';
 
 global.defines = {};
 global.rootPath = path.resolve(__dirname, '..');
@@ -65,6 +66,7 @@ const adminURL = process.env.ACTINIUM_ADMIN_URL || false;
 // set app variables
 app.set('x-powered-by', false);
 
+// express middlewares
 let middlewares = [
     process.env.DEBUG === 'on'
         ? {
@@ -82,19 +84,15 @@ let middlewares = [
     },
     {
         name: 'api',
-        use: [
-            ['/api', '/api/*'],
-            proxy(`${restAPI}`, {
-                proxyReqOptDecorator: req => {
-                    req.headers['x-forwarded-host'] = `localhost:${port}`;
-                    return req;
-                },
-                proxyReqPathResolver: req => {
-                    const resolvedPath = `${restAPI}${req.url}`;
-                    return resolvedPath;
-                },
-            }),
-        ],
+        use: proxy('/api', {
+            target: restAPI,
+            changeOrigin: true,
+            pathRewrite: {
+                '^/api': '',
+            },
+            logLevel: process.env.DEBUG === 'on' ? 'debug' : 'error',
+            ws: true,
+        }),
     },
     // parsers
     {
@@ -161,7 +159,7 @@ const staticAssets =
 
 middlewares.push({
     name: 'static',
-    use: express.static(staticAssets),
+    use: staticGzip(staticAssets),
 });
 
 // default route handler
@@ -173,12 +171,13 @@ middlewares.push({
 // Give app an opportunity to change middlewares
 if (fs.existsSync(`${rootPath}/src/app/server/middleware.js`)) {
     middlewares = require(`${rootPath}/src/app/server/middleware.js`)(
-        middlewares
+        middlewares,
     );
 }
 
 middlewares
     .filter(_ => _)
+    .sort(({ order: aOrder = 0 }, { order: bOrder = 0 }) => bOrder - aOrder)
     .forEach(({ use }) => {
         if (Array.isArray(use)) {
             app.use(...use);
@@ -189,10 +188,6 @@ middlewares
 
 // start server on the specified port and binding host
 app.listen(port, '0.0.0.0', function() {
-    if (isSSR) {
-        app.dependencies.init();
-    }
-
     console.log(`[00:00:00] Reactium Server running on port '${port}'...`);
 });
 

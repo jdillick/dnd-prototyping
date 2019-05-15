@@ -2,6 +2,7 @@ const path = require('path');
 const chalk = require('chalk');
 const fs = require('fs-extra');
 const op = require('object-path');
+const homedir = require('os').homedir();
 const prettier = require('prettier').format;
 const handlebars = require('handlebars').compile;
 
@@ -21,7 +22,13 @@ module.exports = spinner => {
             message(`backing up toolkit manifest...`);
 
             // Backup the ~/src/app/toolkit/index.js file
-            const backupDir = path.normalize(`${cwd}/.BACKUP/toolkit`);
+            const backupDir = path.join(
+                homedir,
+                '.arcli',
+                cwd,
+                '.BACKUP',
+                'toolkit',
+            );
             const backupIndex = path.normalize(`${backupDir}/${now}.index.js`);
             const index = path.normalize(`${cwd}/src/app/toolkit/index.js`);
 
@@ -51,7 +58,7 @@ module.exports = spinner => {
                 const keys = Object.keys(op.get(manifest, `menu`, {})).filter(
                     key => {
                         return key !== id;
-                    }
+                    },
                 );
                 keys.splice(menuOrder, 0, newid);
 
@@ -78,20 +85,22 @@ module.exports = spinner => {
                     });
                     return obj;
                 },
-                {}
+                {},
             );
 
             op.set(manifest, `menu.${newid}`, group);
 
             let content = String(
-                prettier(JSON.stringify(manifest), { parser: 'json-stringify' })
+                prettier(JSON.stringify(manifest), {
+                    parser: 'json-stringify',
+                }),
             )
                 .replace(/\"require(.*?)\.default\"/gim, 'require$1.default')
                 .replace(/\\"/g, '"')
                 .replace(/\\'/g, "'");
 
             content = prettier(`module.exports = ${content};`, {
-                parser: 'babylon',
+                parser: 'babel',
                 printWidth: 240,
                 singleQuote: true,
                 tabWidth: 4,

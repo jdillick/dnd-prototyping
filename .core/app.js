@@ -5,14 +5,16 @@
  * Includes
  * -----------------------------------------------------------------------------
  */
-
+import 'core-js/modules/es6.string.starts-with';
+import 'core-js/modules/es7.object.entries.js';
 import React, { Fragment } from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 import { PlugableProvider } from 'reactium-core/components/Plugable';
 import Router from 'reactium-core/components/Router';
 import storeCreator from 'reactium-core/storeCreator';
-import deps, { getComponents } from 'dependencies';
+import deps from 'dependencies';
+import getComponents from 'dependencies/getComponents';
 
 // Placeholder for the bindable elements
 const bindPoints = [];
@@ -75,9 +77,10 @@ if (elements.length > 0) {
  * inside of them.
  * -----------------------------------------------------------------------------
  */
-// Create the Redux store and export it
-export const store = storeCreator();
-deps.init();
+// Create the Redux store
+const store = storeCreator();
+
+deps().init();
 
 export const App = () => {
     if (typeof document !== 'undefined') {
@@ -86,7 +89,7 @@ export const App = () => {
             bindPoints.forEach(item => {
                 ReactDOM.render(
                     <Provider store={store}>
-                        <PlugableProvider {...deps.plugableConfig}>
+                        <PlugableProvider {...deps().plugableConfig}>
                             <Fragment>{item.component}</Fragment>
                         </PlugableProvider>
                     </Provider>,
@@ -108,7 +111,7 @@ export const App = () => {
                 // Hydrate the Routed component
                 ReactDOM.hydrate(
                     <Provider store={store}>
-                        <PlugableProvider {...deps.plugableConfig}>
+                        <PlugableProvider {...deps().plugableConfig}>
                             <Fragment>
                                 <Router />
                             </Fragment>
@@ -124,7 +127,7 @@ export const App = () => {
                 // Bind the Routed component
                 ReactDOM.render(
                     <Provider store={store}>
-                        <PlugableProvider {...deps.plugableConfig}>
+                        <PlugableProvider {...deps().plugableConfig}>
                             <Fragment>
                                 <Router />
                             </Fragment>

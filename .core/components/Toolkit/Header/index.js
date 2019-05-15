@@ -3,8 +3,9 @@
  * Imports
  * -----------------------------------------------------------------------------
  */
-import React, { Component, Fragment } from 'react';
+import React from 'react';
 import _ from 'underscore';
+import op from 'object-path';
 
 /**
  * -----------------------------------------------------------------------------
@@ -12,82 +13,58 @@ import _ from 'underscore';
  * -----------------------------------------------------------------------------
  */
 
-export default class Header extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            ...this.props
-        };
-    }
+const selectedTheme = ({ themes = [], style }) => {
+    let theme =
+        _.findWhere(themes, { css: style }) ||
+        _.findWhere(themes, { selected: true });
+    theme =
+        typeof theme === 'undefined'
+            ? _.findWhere(themes, { css: '/assets/style/style.css' })
+            : theme;
 
-    componentDidMount() {
-        if (this.state.hasOwnProperty('mount')) {
-            this.state.mount(this);
-        }
-    }
+    return op.get(theme, 'css', style);
+};
 
-    componentWillReceiveProps(nextProps) {
-        this.setState(prevState => ({
-            ...prevState,
-            ...nextProps
-        }));
-    }
-
-    render() {
-        let {
-            logo,
-            title,
-            version,
-            themes = [],
-            onThemeChange = null,
-            minThemes = 0
-        } = this.state;
-
-        let selected =
-            themes.length > 1 ? _.findWhere(themes, { selected: true }) : null;
-        if (selected) {
-            selected = selected.css;
-        } else {
-            selected = null;
-        }
-
-        return (
-            <header className={'re-toolkit-header'}>
-                {logo ? (
-                    <a href={'/toolkit'}>
-                        <img className={'re-toolkit-header-logo'} src={logo} />
-                    </a>
-                ) : null}
-                {title ? <h1 style={{ flexGrow: 1 }}>{title}</h1> : null}
-                {version ? <small>{version}</small> : null}
-                {themes.length > minThemes ? (
-                    <div style={{ marginLeft: 10 }}>
-                        <select
-                            className={'re-toolkit-select'}
-                            defaultValue={selected}
-                            onChange={onThemeChange}
-                        >
-                            {themes.map((item, i) => {
-                                let { css, name } = item;
-                                return (
-                                    <option key={i} value={css}>
-                                        {name}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                    </div>
-                ) : null}
-            </header>
-        );
-    }
-}
+const Header = ({
+    logo,
+    minThemes,
+    onThemeChange,
+    themes,
+    title,
+    version,
+    style,
+}) => (
+    <header className='re-toolkit-header'>
+        {logo && (
+            <a href='/toolkit'>
+                <img className='re-toolkit-header-logo' src={logo} />
+            </a>
+        )}
+        {title && <h1>{title}</h1>}
+        {version && <small>{version}</small>}
+        {themes.length > minThemes && (
+            <select
+                className='re-toolkit-select'
+                defaultValue={selectedTheme({ themes, style })}
+                onChange={onThemeChange}>
+                <option value={false}>Theme</option>
+                {themes.map(({ css, name }, i) => (
+                    <option key={i} value={css}>
+                        {name}
+                    </option>
+                ))}
+            </select>
+        )}
+    </header>
+);
 
 Header.defaultProps = {
-    themes: [],
     logo: null,
-    title: null,
+    minThemes: 0,
     onThemeChange: null,
-    version: '0.0.1',
-    minThemes: 1
+    themes: [],
+    title: null,
+    version: null,
 };
+
+export default Header;

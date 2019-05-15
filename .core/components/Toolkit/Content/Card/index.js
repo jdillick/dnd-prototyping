@@ -5,6 +5,7 @@
  */
 import React, { Component, Fragment } from 'react';
 import { TweenMax, Power2 } from 'gsap/umd/TweenMax';
+import Icon from 'reactium-core/components/Toolkit/Icon';
 import _ from 'underscore';
 
 /**
@@ -20,19 +21,16 @@ export default class Card extends Component {
         this.y = 60;
         this.cont = null;
         this.anchor = null;
-        this.state = { ...this.props };
+        this.state = {
+            fullscreen: this.props.fullscreen,
+            buttons: this.props.buttons,
+            id: this.props.id,
+        };
         this.toggleFullScreen = this.toggleFullScreen.bind(this);
     }
 
     componentDidMount() {
         this.forceUpdate();
-    }
-
-    componentWillReceiveProps(nextProps) {
-        this.setState(prevState => ({
-            ...prevState,
-            ...nextProps
-        }));
     }
 
     getCoords(elm, cont) {
@@ -66,13 +64,14 @@ export default class Card extends Component {
             x: Math.round(left),
             y: Math.round(top),
             width: elm.offsetWidth,
-            height: actualH
+            height: actualH,
         };
     }
 
     toggleFullScreen(e) {
         let { anchor, cont } = this;
-        let { fullscreen, speed = 0.125, buttons } = this.state;
+        let { fullscreen, buttons } = this.state;
+        let { speed = 0.125 } = this.props;
 
         // Get position
         let coords = this.getCoords(anchor, cont);
@@ -93,7 +92,7 @@ export default class Card extends Component {
                 left: coords.x,
                 top: coords.y,
                 width: coords.width,
-                height: coords.height
+                height: coords.height,
             });
 
             // Set anchor height to actual H
@@ -118,7 +117,7 @@ export default class Card extends Component {
                         top: 0,
                         width: '100%',
                         height: 'auto',
-                        position: 'relative'
+                        position: 'relative',
                     });
                     tk.style.overflowY = 'auto';
                     tk.classList.remove('fullscreen');
@@ -126,7 +125,7 @@ export default class Card extends Component {
                 } else {
                     // pop out
                     TweenMax.set(cont, {
-                        width: '100%'
+                        width: '100%',
                     });
                     tk.style.overflowY = 'hidden';
                     tk.classList.add('fullscreen');
@@ -136,23 +135,21 @@ export default class Card extends Component {
                 let btns = JSON.parse(JSON.stringify(buttons)); // clone buttons array
                 let idx = _.indexOf(
                     _.pluck(btns.header, 'name'),
-                    'toggle-fullscreen'
+                    'toggle-fullscreen',
                 );
-                let icon =
-                    fullscreen === true
-                        ? '#re-icon-fullscreen'
-                        : '#re-icon-collapse';
+                let icon = fullscreen === true ? 'Fullscreen' : 'Collapse';
 
                 btns.header[idx]['icon'] = icon;
 
                 // Update the state
                 this.setState({ fullscreen: !fullscreen, buttons: btns });
-            }
+            },
         });
     }
 
     renderButtons(buttons) {
-        let { onButtonClick: onClick } = this.state;
+        let { onButtonClick: onClick } = this.props;
+
         return buttons.map((item, i) => {
             let { title, name, icon } = item;
             return (
@@ -165,21 +162,16 @@ export default class Card extends Component {
                     title={title}
                     key={`button-${i}`}
                     id={name}>
-                    <svg>
-                        <use xlinkHref={icon} />
-                    </svg>
+                    {Icon[icon]()}
                 </button>
             );
         });
     }
 
     render() {
-        let {
-            children = null,
-            buttons = {},
-            title = null,
-            fullscreen = false
-        } = this.state;
+        let { fullscreen, buttons = {} } = this.state;
+
+        let { children = null, title = null } = this.props;
 
         let { header: hbuttons = [], footer: fbuttons = [] } = buttons;
 
@@ -229,6 +221,6 @@ Card.defaultProps = {
     onButtonClick: null,
     buttons: {
         header: [],
-        footer: []
-    }
+        footer: [],
+    },
 };

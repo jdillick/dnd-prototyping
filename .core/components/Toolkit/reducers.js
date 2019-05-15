@@ -6,20 +6,25 @@ export default (state = {}, action) => {
     let newState;
 
     switch (action.type) {
-        case deps.actionTypes.TOOLKIT_MOUNT:
-            newState = { ...state, ...action.data, manifest };
-            return newState;
+        case deps().actionTypes.TOOLKIT_LOAD:
+            return { ...state, ...action.data, manifest, loading: true };
 
-        case deps.actionTypes.TOOLKIT_NAV:
-            let { group = null, element = null } = action.params;
-            newState = { ...state, group, element };
-            return newState;
+        case deps().actionTypes.TOOLKIT_LOADED:
+            return { ...state, loading: null };
 
-        case deps.actionTypes.TOOLKIT_PREF:
-            newState = { ...state };
-            let karry = action.key.split('.');
+        case deps().actionTypes.TOOLKIT_MOUNT:
+            return { ...state, ...action.data, manifest };
 
-            let all = karry.pop();
+        case deps().actionTypes.TOOLKIT_NAV:
+        case deps().actionTypes.UPDATE_ROUTE:
+            const { group = null, element = null } = action.params;
+            return { ...state, group, element };
+
+        case deps().actionTypes.TOOLKIT_PREF:
+            newState = { ...state, update: Date.now() };
+            const karry = action.key.split('.');
+            const all = karry.pop();
+
             if (all === 'all') {
                 op.empty(newState, karry.join('.'), null);
             }
@@ -28,42 +33,31 @@ export default (state = {}, action) => {
 
             return newState;
 
-        case deps.actionTypes.TOOLKIT_THEME:
-            newState = { ...state, style: action.theme };
+        case deps().actionTypes.TOOLKIT_THEME:
+            return { ...state, style: action.theme, update: Date.now() };
 
-            return newState;
+        case deps().actionTypes.TOOLKIT_MENU_TOGGLE:
+            const { animating = false } = state;
+            return { ...state, animating: !animating, update: Date.now() };
 
-        case deps.actionTypes.TOOLKIT_MENU_TOGGLE:
-            let { animating = false } = state;
-
-            newState = { ...state, animating: !animating };
-
-            return newState;
-
-        case deps.actionTypes.TOOLKIT_NOTICE_UPDATE:
-            newState = { ...state };
-
+        case deps().actionTypes.TOOLKIT_NOTICE_UPDATE:
             delete action.params.elm;
+            return { ...state, notify: action.params };
 
-            newState['notify'] = action.params;
-
-            return newState;
-
-        case deps.actionTypes.TOOLKIT_NOTICE_TOGGLE:
+        case deps().actionTypes.TOOLKIT_NOTICE_TOGGLE:
             newState = { ...state };
 
             if (action.visible === false) {
-                newState['notify'] = {};
+                op.set(newState, 'notify', {});
             }
 
-            newState['notify']['animating'] = false;
-            newState['notify']['visible'] = action.visible;
+            op.set(newState, 'notify.animating', false);
+            op.set(newState, 'notify.visible', action.visible);
 
             return newState;
 
-        case deps.actionTypes.TOOLKIT_SETTINGS_TOGGLE:
-            newState = { ...state, showSettings: !state.showSettings };
-            return newState;
+        case deps().actionTypes.TOOLKIT_SETTINGS_TOGGLE:
+            return { ...state, showSettings: !state.showSettings };
 
         default:
             return state;
