@@ -79,16 +79,6 @@ export default class MenuBuilder extends Component {
         const { droppableId: cId, index: cIdx, draggableId: combineId } =
             op.get(results, 'combine') || {};
 
-        console.log({
-            draggableId,
-            sId,
-            sIdx,
-            dId,
-            dIdx,
-            cId,
-            cIdx,
-        });
-        console.log({ results });
         const flattened = MenuBuilder.flatten(this.state.items);
 
         // Possible move of menu item
@@ -163,11 +153,34 @@ export default class MenuBuilder extends Component {
                 return { items: MenuBuilder.inflate(updated) };
             });
         }
+
+        // no target
+        if (!combine && !destination && draggableId) {
+            return this.setState(() => {
+                const updated = flattened
+                    .map(item => {
+                        // move dragged item to new position
+                        if (item.id === draggableId) {
+                            return {
+                                ...item,
+                                parent: null,
+                                idx: 1000,
+                            };
+                        }
+                        return item;
+                    })
+                    .sort((a, b) =>
+                        a.idx < b.idx ? -1 : a.idx > b.idx ? 1 : 0,
+                    );
+
+                return { items: MenuBuilder.inflate(updated) };
+            });
+        }
     };
 
     render() {
         const { items } = this.state;
-        console.log({ items });
+
         return (
             <DragDropContext onDragEnd={this.handleDragEnd}>
                 <Droppable
