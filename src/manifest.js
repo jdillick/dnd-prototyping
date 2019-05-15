@@ -9,6 +9,8 @@ module.exports = {
             allActions: {
                 Plugable: require('reactium-core/components/Plugable/actions')
                     .default,
+                Routes: require('reactium-core/components/Router/Routes/actions')
+                    .default,
                 Router: require('reactium-core/components/Router/actions')
                     .default,
                 Toolkit: require('reactium-core/components/Toolkit/actions')
@@ -17,6 +19,8 @@ module.exports = {
             allActionTypes: {
                 Plugable: require('reactium-core/components/Plugable/actionTypes')
                     .default,
+                Routes: require('reactium-core/components/Router/Routes/actionTypes')
+                    .default,
                 Router: require('reactium-core/components/Router/actionTypes')
                     .default,
                 Toolkit: require('reactium-core/components/Toolkit/actionTypes')
@@ -24,6 +28,8 @@ module.exports = {
             },
             allReducers: {
                 Plugable: require('reactium-core/components/Plugable/reducers')
+                    .default,
+                Routes: require('reactium-core/components/Router/Routes/reducers')
                     .default,
                 Router: require('reactium-core/components/Router/reducers')
                     .default,
@@ -44,10 +50,7 @@ module.exports = {
                 Toolkit: require('reactium-core/components/Toolkit/route')
                     .default,
             },
-            allServices: {
-                Toolkit: require('reactium-core/components/Toolkit/services')
-                    .default,
-            },
+            allServices: {},
             allMiddleware: {
                 redux: require('reactium-core/redux/middleware').default,
             },
@@ -60,34 +63,38 @@ module.exports = {
     contexts: {
         components:
             typeof window !== 'undefined' &&
-            require.context('components', true, /.jsx?$/),
+            require.context('components', true, /.js?$/, 'sync'),
         common:
             typeof window !== 'undefined' &&
-            require.context('components/common-ui/', true, /.jsx?$/),
+            require.context('components/common-ui/', true, /.js?$/, 'sync'),
         toolkit:
             typeof window !== 'undefined' &&
-            require.context('toolkit', true, /.jsx?$/),
+            require.context('toolkit', true, /.js?$/, 'sync'),
         core:
             typeof window !== 'undefined' &&
-            require.context('reactium-core/components', true, /.jsx?$/),
+            require.context('reactium-core/components', true, /.js?$/, 'sync'),
     },
     listContexts: () => {
         return {
             components: {
                 modulePath: 'components',
-                filePattern: '.jsx?$',
+                filePattern: '.js?$',
+                mode: 'sync',
             },
             common: {
                 modulePath: 'components/common-ui/',
-                filePattern: '.jsx?$',
+                filePattern: '.js?$',
+                mode: 'sync',
             },
             toolkit: {
                 modulePath: 'toolkit',
-                filePattern: '.jsx?$',
+                filePattern: '.js?$',
+                mode: 'sync',
             },
             core: {
                 modulePath: 'reactium-core/components',
-                filePattern: '.jsx?$',
+                filePattern: '.js?$',
+                mode: 'sync',
             },
         };
     },
@@ -97,6 +104,7 @@ module.exports = {
                 type: 'actions',
                 imports: [
                     'reactium-core/components/Plugable/actions',
+                    'reactium-core/components/Router/Routes/actions',
                     'reactium-core/components/Router/actions',
                     'reactium-core/components/Toolkit/actions',
                 ],
@@ -105,6 +113,7 @@ module.exports = {
                 type: 'actionTypes',
                 imports: [
                     'reactium-core/components/Plugable/actionTypes',
+                    'reactium-core/components/Router/Routes/actionTypes',
                     'reactium-core/components/Router/actionTypes',
                     'reactium-core/components/Toolkit/actionTypes',
                 ],
@@ -113,6 +122,7 @@ module.exports = {
                 type: 'reducers',
                 imports: [
                     'reactium-core/components/Plugable/reducers',
+                    'reactium-core/components/Router/Routes/reducers',
                     'reactium-core/components/Router/reducers',
                     'reactium-core/components/Toolkit/reducers',
                 ],
@@ -135,7 +145,7 @@ module.exports = {
             },
             allServices: {
                 type: 'services',
-                imports: ['reactium-core/components/Toolkit/services'],
+                imports: [],
             },
             allMiddleware: {
                 type: 'middleware',

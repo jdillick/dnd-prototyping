@@ -18,7 +18,7 @@ if (module.hot) {
         ['../.././.core/dependencies/index.js', '../.././.core/app.js'],
         () => {
             window.location.reload();
-        }
+        },
     );
 }
 
